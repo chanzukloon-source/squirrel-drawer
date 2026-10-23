@@ -343,6 +343,7 @@
       Sign in with Google
     </button>
     <button id="skipSignInBtn" class="skip-btn">Just testing — save to this device instead</button>
+    <p style="font-size:11px;color:#999;margin:14px 0 0;">version 3</p>
   </div>
 </div>
 
@@ -1348,7 +1349,7 @@ function initGoogleSignIn(){
   // Google's script loads async, so wait for it instead of giving up straight away
   if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2){
     if(googleInitTries++ < 40){ if(btn) btn.style.opacity = '0.5'; setTimeout(initGoogleSignIn, 250); return; }
-    if(btn){ btn.style.display = 'none'; }
+    if(btn){ btn.style.opacity = ''; btn.addEventListener('click', ()=>{ try{ showToast("Google's sign-in script didn't load. Check your connection or any content blocker, then refresh."); }catch(e){} }); }
     return;
   }
   if(btn) btn.style.opacity = '';
