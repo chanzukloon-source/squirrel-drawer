@@ -267,12 +267,12 @@
     font:inherit; font-size:13.5px; background:#fff; color:var(--ink);
   }
   .ref-btn{
-    display:inline-block; padding:8px 14px; border-radius:999px; border:none; background:var(--blue); color:#fff;
+    display:inline-block; padding:8px 14px; border-radius:999px; border:none; background:var(--velvet); color:#fff;
     font:inherit; font-size:13px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap;
   }
   .ai-row{ margin-top:12px; }
   .ai-btn{
-    width:100%; padding:11px 14px; border-radius:12px; border:2px dashed var(--yellow);
+    width:100%; padding:11px 14px; border-radius:12px; border:2px dashed var(--gold);
     background:rgba(254,191,0,0.14); color:var(--ink); font:inherit; font-size:14px; font-weight:700; cursor:pointer;
   }
   .ai-btn:hover{ background:rgba(254,191,0,0.26); }
@@ -434,7 +434,7 @@ let openIdeaId = null;
    GOOGLE DRIVE SETUP — fill this in once you've completed the
    Google Cloud Console steps. It's the only line you need to edit.
    ============================================================ */
-const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '1097239501835-gdtffp48rcamb6kj1ig2a45tl0u3bi12.apps.googleusercontent.com';
 
 const localFallback = {
   async get(key){
@@ -943,7 +943,7 @@ function filteredIdeas(){
   }).sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
 }
 
-function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 function renderGrid(){
   const list = filteredIdeas();
@@ -1352,7 +1352,7 @@ function initGoogleSignIn(){
     client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
     callback: (resp)=>{
-      if(resp.error){ console.error('Google sign-in failed', resp); return; }
+      if(resp.error){ console.error('Google sign-in failed', resp); try{ showToast('Google sign-in did not work ('+resp.error+'). You can still tap skip.'); }catch(e){} return; }
       driveAccessToken = resp.access_token;
       storage = driveStorage;
       enterApp();
