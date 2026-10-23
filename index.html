@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squirrel Drawer</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;0,800;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --velvet: #138eff;
+    --velvet-deep: #0c3f82;
+    --gold: #febf00;
+    --gold-soft: #ffe089;
+    --coral: #d2554a;
+    --sage: #138eff;
+    --plum-tag: #9b8fa8;
+    --card: #ffffff;
+    --card-shadow: rgba(19,63,122,0.16);
+    --ink: #14151c;
+    --ink-soft: #63636b;
+    --paper: #fcfcef;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top, #eaf4ff 0%, var(--paper) 55%, #fdf3cf 100%);
+    font-family:'Nunito Sans', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+  }
+  ::selection{ background: var(--gold); color:var(--velvet-deep); }
+
+  .wrap{ max-width:960px; margin:0 auto; padding:28px 20px 80px; }
+
+  header.hero{ text-align:center; margin-bottom:22px; }
+  header.hero h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:clamp(28px,5vw,42px);
+    margin:0 0 4px;
+    letter-spacing:0.2px;
+    color:var(--velvet-deep);
+  }
+  header.hero p{ margin:0; color:var(--ink-soft); font-size:14.5px; }
+
+  /* ---- capture bar ---- */
+  .capture{
+    background: linear-gradient(160deg, #3ba2ff, var(--velvet) 55%, var(--velvet-deep));
+    border:1px solid rgba(255,255,255,0.3);
+    border-radius:18px;
+    padding:16px;
+    box-shadow: 0 12px 26px rgba(12,63,130,0.32), inset 0 0 30px rgba(255,255,255,0.08);
+    margin-bottom:26px;
+  }
+  .capture-row{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .capture-input{
+    flex:1 1 260px;
+    background: var(--card);
+    border-radius:12px;
+    border:none;
+    padding:14px 16px;
+    font-family:'Nunito Sans', sans-serif;
+    font-size:15.5px;
+    color: var(--ink);
+    resize:none;
+    min-height:52px;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+  }
+  .capture-input:focus{ outline:2px solid var(--gold); }
+  .capture-btns{ display:flex; gap:8px; }
+  .icon-btn{
+    width:52px; height:52px; border-radius:12px; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+    background: rgba(255,255,255,0.2); color:#fff;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .icon-btn:hover{ background: rgba(255,255,255,0.32); transform: translateY(-1px); }
+  .icon-btn:active{ transform: translateY(0); }
+  .icon-btn.recording{ background: var(--coral); color:white; animation: pulse 1.1s infinite; }
+  .icon-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(210,85,74,0.5);} 70%{box-shadow:0 0 0 10px rgba(210,85,74,0);} 100%{box-shadow:0 0 0 0 rgba(210,85,74,0);} }
+  .drop-btn{
+    background: var(--gold); color:var(--velvet-deep); border:none; border-radius:12px;
+    padding:14px 22px; font-weight:800; font-size:15px; cursor:pointer;
+    box-shadow: 0 3px 0 #c99500;
+  }
+  .drop-btn:hover{ filter:brightness(1.05); }
+  .drop-btn:active{ transform: translateY(2px); box-shadow:none; }
+  .capture-meta{ display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; font-size:12.5px; color:var(--gold-soft); }
+  .capture-dest-row{ display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .capture-dest-row label{ font-size:11.5px; color:var(--gold-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.4px; }
+  #captureDest{
+    background: rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4);
+    border-radius:8px; padding:5px 10px; font-size:12.5px; font-family:'Nunito Sans'; font-weight:700; cursor:pointer;
+  }
+  #captureDest:focus{ outline:1px solid var(--gold); }
+  .capture-hint{ font-size:11.5px; color:#eaf4ff; }
+  .thumb-preview{ height:34px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); }
+  .clear-img{ background:none; border:none; color:#fff; cursor:pointer; font-size:12.5px; text-decoration:underline; }
+
+  /* ---- needs a look ---- */
+  .needs-look{
+    margin-bottom:22px;
+  }
+  .needs-look summary{
+    cursor:pointer; list-style:none; font-family:'Baloo 2', sans-serif; font-weight:700;
+    font-size:17px; color:var(--velvet-deep); padding:4px 0;
+    display:flex; align-items:center; gap:8px;
+  }
+  .needs-look summary::-webkit-details-marker{ display:none; }
+  .needs-look summary::before{ content:'✦'; font-size:13px; color:var(--gold); -webkit-text-stroke: 0.5px var(--velvet-deep); }
+  .needs-look-sub{ font-size:12.5px; color:var(--ink-soft); font-family:'Nunito Sans'; font-weight:400; margin-left:4px; }
+  .nl-row{ display:flex; gap:10px; overflow-x:auto; padding:12px 2px 4px; }
+  .nl-card{
+    flex:0 0 200px; background: #fff; border:1px dashed rgba(19,142,255,0.4);
+    border-radius:12px; padding:12px; font-size:13px; color:var(--ink); cursor:pointer;
+  }
+  .nl-card:hover{ background: #eaf4ff; }
+  .nl-card .nl-text{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:8px; }
+  .nl-actions{ display:flex; gap:6px; margin-top:8px; }
+  .nl-actions button{ background:rgba(19,142,255,0.08); border:none; color:var(--velvet-deep); border-radius:6px; padding:4px 8px; font-size:11px; cursor:pointer; }
+  .nl-actions button:hover{ background:rgba(19,142,255,0.16); }
+
+  /* ---- filters ---- */
+  .filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; align-items:center; }
+  .chip{
+    border:1.5px solid rgba(19,142,255,0.3); background:#fff; color:var(--ink);
+    padding:6px 13px; border-radius:999px; font-size:12.5px; cursor:pointer; font-weight:700;
+    transition: all .12s ease;
+  }
+  .chip.active{ background: var(--gold); border-color:var(--gold); color:var(--velvet-deep); }
+  .chip:hover{ border-color: var(--velvet); }
+  .chip.review-chip.active{ background: var(--coral); border-color:var(--coral); color:white; }
+
+  .sub-row{ display:flex; flex-wrap:wrap; gap:6px; width:100%; margin-top:8px; padding:8px 0 2px 14px; border-left:2px solid rgba(19,142,255,0.28); }
+  .chip.sub-chip{
+    border-style:dashed; font-size:11.5px; padding:5px 12px 5px 10px;
+    background: rgba(19,142,255,0.05); color:var(--ink-soft); font-weight:600;
+  }
+  .chip.sub-chip::before{ content:'↳'; margin-right:4px; opacity:0.6; font-weight:400; }
+  .chip.sub-chip.active{ border-style:solid; }
+  .chip.all-sub-chip{ font-size:12px; }
+  .chip.add-chip{ border-style:dashed; color:var(--velvet-deep); background:transparent; font-weight:700; border-color:rgba(19,142,255,0.5); }
+  .chip.add-chip:hover{ background:rgba(19,142,255,0.1); }
+  .inline-prompt{ display:inline-flex; gap:5px; align-items:center; margin-left:6px; }
+  .inline-prompt-input{
+    background: #fff; border:1px solid var(--velvet); border-radius:6px;
+    padding:5px 9px; font-size:12.5px; color:var(--ink); font-family:'Nunito Sans'; width:150px;
+  }
+  .inline-prompt-input::placeholder{ color:var(--ink-soft); }
+  .inline-prompt-ok, .inline-prompt-cancel{
+    border:none; border-radius:6px; padding:5px 9px; font-size:12px; font-weight:800; cursor:pointer;
+  }
+  .inline-prompt-ok{ background:var(--gold); color:var(--velvet-deep); }
+  .inline-prompt-cancel{ background:#eef2f6; color:var(--ink); }
+
+  /* ---- grid ---- */
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px;
+  }
+  .idea-card{
+    background: var(--card); border-radius:10px; padding:14px 14px 12px;
+    color:var(--ink); cursor:pointer; position:relative; min-height:130px;
+    border:1px solid rgba(19,142,255,0.14);
+    box-shadow: 0 6px 14px var(--card-shadow), 0 1px 0 rgba(255,255,255,0.6) inset;
+    transform: rotate(var(--r,0deg));
+    transition: transform .15s ease, box-shadow .15s ease;
+    display:flex; flex-direction:column;
+  }
+  .idea-card:hover{ transform: rotate(0deg) translateY(-3px); box-shadow: 0 10px 20px var(--card-shadow); }
+  .idea-card img{ width:100%; height:80px; object-fit:cover; border-radius:6px; margin-bottom:8px; }
+  .idea-text{ font-size:14px; line-height:1.4; flex:1; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; }
+  .card-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:6px; }
+  .cat-dot{ display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--ink-soft); }
+  .cat-dot span.dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .notebook-flag{ font-size:14px; opacity:0.6; }
+  .review-tag{ font-size:10px; background:var(--coral); color:white; padding:2px 6px; border-radius:6px; position:absolute; top:-8px; right:10px; font-weight:800; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
+
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--ink-soft); font-size:14px; }
+  .empty-state b{ color:var(--velvet-deep); }
+
+  /* ---- modal ---- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(12,40,80,0.55); backdrop-filter: blur(2px);
+    display:flex; align-items:flex-start; justify-content:center; padding:30px 16px; z-index:50; overflow-y:auto;
+  }
+  .modal{
+    background: var(--paper); color:var(--ink); border-radius:16px; max-width:640px; width:100%;
+    padding:26px 26px 30px; box-shadow: 0 30px 60px rgba(12,40,80,0.35);
+    font-family:'Nunito Sans', sans-serif; margin-bottom:30px;
+  }
+  .modal-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px; }
+  .close-x{ background:none; border:none; font-size:22px; cursor:pointer; color:var(--ink-soft); line-height:1; padding:2px 6px; }
+  .modal textarea.main-idea{
+    width:100%; border:none; border-bottom:2px dashed transparent; background:transparent; font-family:'Baloo 2', sans-serif; font-weight:600;
+    font-size:20px; line-height:1.4; resize:none; color:var(--ink); padding:0 0 4px; min-height:70px;
+    overflow-y:hidden; cursor:text; transition: border-color .15s ease;
+  }
+  .modal textarea.main-idea:hover{ border-bottom-color:#bcdcff; }
+  .modal textarea.main-idea:focus{ outline:none; border-bottom-color:var(--velvet); }
+  .edit-hint{ font-size:11px; color:var(--ink-soft); margin:2px 0 0; }
+  .modal img.idea-img{ width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin:8px 0 14px; }
+
+  .field-row{ display:flex; gap:14px; flex-wrap:wrap; margin:14px 0; align-items:center; }
+  .field{ display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.4px; }
+  select, input[type=date]{
+    font-family:'Nunito Sans'; font-size:13.5px; padding:7px 10px; border-radius:8px; border:1px solid #cfe0f5; background:white; color:var(--ink);
+  }
+  .link-btn{ background:none; border:none; color:var(--coral); font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-weight:700;}
+
+  .divider{ border:none; border-top:1px dashed #cfe0f5; margin:18px 0; }
+
+  .notebook-label{ font-family:'Baloo 2', sans-serif; font-size:16px; font-weight:700; color:var(--velvet-deep); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .notebook-entries{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; max-height:340px; overflow-y:auto; padding-right:4px;}
+  .nb-entry{ background:white; border-radius:10px; padding:12px 14px; border-left:3px solid var(--gold); position:relative; }
+  .nb-entry .nb-date{ font-size:10.5px; color:var(--ink-soft); font-weight:800; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; }
+  .nb-entry .nb-text{ font-family:'Nunito Sans', sans-serif; font-style:italic; font-weight:500; font-size:15.5px; line-height:1.5; color:var(--ink); white-space:pre-wrap; }
+  .nb-edit-btn{ background:none; border:none; color:var(--velvet); font-size:11px; font-weight:800; cursor:pointer; text-decoration:underline; }
+  .nb-edit-area{ display:flex; flex-direction:column; gap:8px; }
+  .nb-edit-area textarea{
+    font-family:'Nunito Sans', sans-serif; font-style:italic; font-size:15.5px; border-radius:8px; border:1px solid #cfe0f5;
+    padding:8px 10px; resize:none; overflow-y:hidden; min-height:50px;
+  }
+  .nb-edit-actions{ display:flex; gap:8px; align-items:center; }
+  .nb-edit-actions button{ border:none; border-radius:7px; padding:6px 12px; font-size:11.5px; font-weight:800; cursor:pointer; }
+  .nb-save-btn{ background:var(--velvet); color:white; }
+  .nb-cancel-btn{ background:#eef2f6; color:var(--ink); }
+  .nb-img-btn{ background:rgba(19,142,255,0.08); color:var(--ink-soft); }
+  .nb-entry-thumb-wrap{ position:relative; display:inline-block; }
+  .nb-entry-thumb-wrap .remove-thumb{
+    position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:white; border:none;
+    border-radius:50%; width:20px; height:20px; font-size:11px; cursor:pointer; line-height:1;
+  }
+  .nb-add{ display:flex; flex-direction:column; gap:8px; }
+  .nb-add-row{ display:flex; flex-direction:column; gap:8px; }
+  .nb-add-row textarea{
+    flex:1; font-family:'Nunito Sans', sans-serif; font-style:italic; font-size:15.5px; border-radius:10px; border:1px solid #cfe0f5; padding:10px 12px; min-height:60px; resize:vertical; overflow-y:hidden;
+  }
+  .nb-add-actions{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .nb-add-actions .nb-submit-btn{ background: var(--velvet); color:white; border:none; border-radius:8px; padding:10px 18px; font-weight:800; cursor:pointer; }
+  .nb-add-actions .nb-submit-btn:hover{ filter:brightness(1.08); }
+  .nb-img-toolbtn{
+    background:rgba(19,142,255,0.08); color:var(--ink-soft); border:none; border-radius:8px;
+    padding:9px 14px; font-size:13px; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .nb-img-toolbtn:hover{ background:rgba(19,142,255,0.15); }
+  .nb-preview-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+  .nb-preview-row:empty{ display:none; }
+  .nb-preview-row img{ height:56px; border-radius:6px; border:1px solid #cfe0f5; display:block; }
+  .thumb-wrap{ position:relative; display:inline-block; }
+  .nb-preview-row .thumb-x{
+    position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%;
+    background:var(--ink); color:#fff; border:2px solid #fff; font-size:13px; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; text-decoration:none;
+  }
+  .nb-img-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:8px; }
+  .nb-img-grid img{ width:100%; height:96px; object-fit:cover; border-radius:8px; cursor:zoom-in; border:1px solid #e3ecf7; }
+  .ref-row{ margin-top:14px; }
+  .ref-label{ display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; }
+  .ref-input-row{ display:flex; gap:8px; align-items:center; }
+  .ref-input-row input{
+    flex:1; min-width:0; padding:9px 11px; border:1px solid #cfe0f5; border-radius:10px;
+    font:inherit; font-size:13.5px; background:#fff; color:var(--ink);
+  }
+  .ref-btn{
+    display:inline-block; padding:8px 14px; border-radius:999px; border:none; background:var(--blue); color:#fff;
+    font:inherit; font-size:13px; font-weight:700; text-decoration:none; cursor:pointer; white-space:nowrap;
+  }
+  .ai-row{ margin-top:12px; }
+  .ai-btn{
+    width:100%; padding:11px 14px; border-radius:12px; border:2px dashed var(--yellow);
+    background:rgba(254,191,0,0.14); color:var(--ink); font:inherit; font-size:14px; font-weight:700; cursor:pointer;
+  }
+  .ai-btn:hover{ background:rgba(254,191,0,0.26); }
+  .ai-menu{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+  .ai-menu[hidden]{ display:none; }
+  .ai-menu button{
+    text-align:left; padding:9px 12px; border-radius:10px; border:1px solid #cfe0f5; background:#fff;
+    font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer;
+  }
+  .ai-menu button:hover{ background:rgba(19,142,255,0.08); }
+  .ai-menu-hint, .ai-menu-note{ font-size:12px; color:var(--ink-soft); }
+  .lightbox{
+    position:fixed; inset:0; z-index:200; background:rgba(12,20,40,0.88); display:flex;
+    align-items:center; justify-content:center; padding:20px; cursor:zoom-out;
+  }
+  .lightbox img{ max-width:100%; max-height:100%; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+
+  .modal-footer{ display:flex; justify-content:space-between; align-items:center; margin-top:18px; }
+  .save-note{ font-size:11.5px; color:var(--ink-soft); transition: color .15s ease; }
+  .save-note.saving{ color:var(--velvet); font-weight:700; }
+  .save-note.saved{ color:#1f9c5a; font-weight:800; }
+  .delete-btn{ background:none; border:none; color:var(--coral); font-size:12px; text-decoration:underline; cursor:pointer; }
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    background: var(--gold); color:var(--velvet-deep); padding:10px 20px; border-radius:999px;
+    font-weight:800; font-size:13.5px; box-shadow:0 8px 20px rgba(12,40,80,0.35); z-index:100;
+    opacity:0; pointer-events:none; transition: opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+  input[type=file]{ display:none; }
+  #nbImgInput, [id^="editImgInput-"]{ display:none; }
+
+  .signin-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    background: radial-gradient(ellipse at top, #eaf4ff 0%, var(--paper) 55%, #fdf3cf 100%);
+  }
+  .signin-card{
+    background:#fff; border-radius:20px; padding:36px 30px; max-width:380px; width:100%;
+    text-align:center; box-shadow: 0 20px 50px rgba(12,40,80,0.18);
+  }
+  .signin-emoji{ font-size:44px; margin-bottom:8px; }
+  .signin-title{ font-family:'Baloo 2', sans-serif; font-weight:700; font-size:26px; color:var(--velvet-deep); margin:0 0 10px; }
+  .signin-sub{ color:var(--ink-soft); font-size:14px; line-height:1.5; margin:0 0 22px; }
+  .google-btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+    background:#fff; border:1.5px solid #dadce0; border-radius:10px; padding:12px 16px;
+    font-family:'Nunito Sans'; font-weight:700; font-size:14.5px; color:#3c4043; cursor:pointer;
+  }
+  .google-btn:hover{ background:#f8f9fa; }
+  .skip-btn{
+    display:block; width:100%; background:none; border:none; margin-top:14px;
+    color:var(--ink-soft); font-size:12.5px; text-decoration:underline; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="signInScreen" class="signin-screen">
+  <div class="signin-card">
+    <div class="signin-emoji">🐿️</div>
+    <h1 class="signin-title">Squirrel Drawer</h1>
+    <p class="signin-sub">Sign in to save your stash to your own Google Drive — your ideas, your account, nobody else's.</p>
+    <button id="googleSignInBtn" class="google-btn">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.5 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 6.1 29.5 4 24 4c-7.5 0-13.9 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.5l-6.5-5.5C29.5 34.9 26.9 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.5 5.5C40.9 36.5 44 30.9 44 24c0-1.4-.1-2.7-.4-3.5z"/></svg>
+      Sign in with Google
+    </button>
+    <button id="skipSignInBtn" class="skip-btn">Just testing — save to this device instead</button>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
+<div class="wrap">
+  <header class="hero">
+    <h1>🐿️ Squirrel Drawer</h1>
+    <p>Stash the shiny thought. Deal with it later. Nothing gets lost in here.</p>
+  </header>
+
+  <div class="capture">
+    <div class="capture-row">
+      <textarea id="captureInput" class="capture-input" placeholder="What just landed in your brain? (Enter to drop it in)" rows="1"></textarea>
+      <div class="capture-btns">
+        <button class="icon-btn" id="micBtn" title="Voice capture">🎙️</button>
+        <button class="icon-btn" id="imgBtn" title="Add a photo">🖼️</button>
+        <input type="file" id="imgInput" accept="image/*">
+        <button class="drop-btn" id="dropBtn">Drop it in</button>
+      </div>
+    </div>
+    <div class="capture-meta" id="captureMeta"></div>
+    <div class="capture-dest-row">
+      <label for="captureDest">Send to</label>
+      <select id="captureDest"></select>
+      <span class="capture-hint" id="captureHint"></span>
+    </div>
+  </div>
+
+  <details class="needs-look" id="needsLook" open>
+    <summary>Been sitting a while <span class="needs-look-sub" id="nlCount"></span></summary>
+    <div class="nl-row" id="nlRow"></div>
+  </details>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">Nothing here yet. <b>Toss an idea in above</b> — even half a thought counts.</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_CATEGORIES = [
+  { id:'zukism', name:'Zukism', color:'#c9a15a', subs:[
+    {id:'spritz', name:'Spritz State of Mind'},
+    {id:'saucy', name:'Saucy Living'},
+    {id:'mare', name:'Andiamo al Mare'},
+    {id:'gaeta', name:'Christmas in Gaeta'},
+    {id:'lemon', name:'Lemon Garden'},
+    {id:'cottage', name:'Bee My Cottage'},
+  ]},
+  { id:'fluffyeah', name:'Fluff Yeah!', color:'#8a9a7e', subs:[
+    {id:'bandanas', name:'Bandanas'},
+    {id:'hats', name:'Hats'},
+    {id:'apparel', name:'Prints & Apparel'},
+  ]},
+  { id:'perimenopause', name:'Perimenopause Book', color:'#e4694f', subs:[] },
+  { id:'unsorted', name:'Unsorted', color:'#9b8fa8', subs:[], special:true },
+];
+
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString(); }
+function daysFromNow(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+
+const SAMPLE_IDEAS = [
+  { id:'i1', text:"Maine Coon bandana but for the 'feral gremlin hours' energy — 2am zoomies print", category:'fluffyeah', sub:'bandanas', image:null, reviewDate:null, createdAt:daysAgo(2), lastTouched:daysAgo(2), notebook:[] },
+  { id:'i2', text:"Card line: 'Sorry I ghosted, I was busy sitting in the sun like Gandalf' — cat-shaped guilt-free apology cards", category:'unsorted', sub:null, image:null, reviewDate:null, createdAt:daysAgo(1), lastTouched:daysAgo(1), notebook:[] },
+  { id:'i3', text:"Lemon Garden coordinate idea: little terracotta pots as a border print, could tile really well for wallpaper", category:'zukism', sub:'lemon', image:null, reviewDate:daysFromNow(-3), createdAt:daysAgo(21), lastTouched:daysAgo(21), notebook:[
+    { id:'n1', ts:daysAgo(18), text:"Sketched the pot shape rough — needs to feel hand-thrown not clip-art", images:[] }
+  ]},
+  { id:'i4', text:"Perimenopause book spread: a page that's just a chart titled 'Where did my brain go' with zero actual data points", category:'perimenopause', sub:null, image:null, reviewDate:daysFromNow(2), createdAt:daysAgo(9), lastTouched:daysAgo(4), notebook:[
+    { id:'n2', ts:daysAgo(4), text:"Could be the funniest spread in the whole book honestly. Keep the joke dry, no punchline text needed.", images:[] }
+  ]},
+  { id:'i5', text:"Saucy Living blender idea — a 'sugo simmering' pattern, deep red tomato tones, could pair with the spritz palette", category:'zukism', sub:'saucy', image:null, reviewDate:null, createdAt:daysAgo(40), lastTouched:daysAgo(40), notebook:[] },
+  { id:'i6', text:"Embroidered hat idea: just Gandalf's unimpressed face, no text needed, the face IS the joke", category:'fluffyeah', sub:'hats', image:null, reviewDate:null, createdAt:daysAgo(6), lastTouched:daysAgo(6), notebook:[] },
+  { id:'i7', text:"Random: a 'Life's a beautiful mess' tote but the print is deliberately a little crooked, like it was hung to dry", category:'unsorted', sub:null, image:null, reviewDate:daysFromNow(-8), createdAt:daysAgo(35), lastTouched:daysAgo(35), notebook:[] },
+  { id:'i8', text:"Andiamo al Mare — striped beach umbrella motif as a border coordinate, navy + lemon yellow only, keep it restrained", category:'zukism', sub:'mare', image:null, reviewDate:null, createdAt:daysAgo(3), lastTouched:daysAgo(1), notebook:[
+    { id:'n3', ts:daysAgo(1), text:"Tried it in 3 colorways — navy/yellow wins, the third one felt too Fourth of July", images:[] }
+  ]},
+];
+
+let categories = DEFAULT_CATEGORIES;
+let ideas = [];
+let activeFilter = { type:'all' }; // {type:'all'} | {type:'cat', id} | {type:'sub', catId, subId} | {type:'review'} | {type:'unsorted'}
+let pendingImage = null;
+let openIdeaId = null;
+
+/* ============================================================
+   GOOGLE DRIVE SETUP — fill this in once you've completed the
+   Google Cloud Console steps. It's the only line you need to edit.
+   ============================================================ */
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
+
+const localFallback = {
+  async get(key){
+    const v = localStorage.getItem('squirrel-drawer:'+key);
+    if(v === null) throw new Error('not found');
+    return { key, value: v };
+  },
+  async set(key, value){ localStorage.setItem('squirrel-drawer:'+key, value); return { key, value }; },
+  async delete(key){ localStorage.removeItem('squirrel-drawer:'+key); return { key, deleted:true }; },
+  async list(prefix){
+    const p = 'squirrel-drawer:'+(prefix||'');
+    const keys = Object.keys(localStorage).filter(k=>k.startsWith(p)).map(k=>k.slice('squirrel-drawer:'.length));
+    return { keys };
+  }
+};
+
+let driveAccessToken = null;
+const driveStorage = {
+  fileIds: {},
+  async findId(key){
+    if(this.fileIds[key]) return this.fileIds[key];
+    const name = `squirrel-drawer-${key}.json`;
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D%27${encodeURIComponent(name)}%27+and+trashed%3Dfalse&spaces=drive&fields=files(id,name)`, {
+      headers: { Authorization: `Bearer ${driveAccessToken}` }
+    });
+    if(!res.ok) throw new Error('drive lookup failed');
+    const data = await res.json();
+    const id = (data.files && data.files[0]) ? data.files[0].id : null;
+    if(id) this.fileIds[key] = id;
+    return id;
+  },
+  async get(key){
+    const id = await this.findId(key);
+    if(!id) throw new Error('not found');
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+      headers: { Authorization: `Bearer ${driveAccessToken}` }
+    });
+    if(!res.ok) throw new Error('drive read failed');
+    return { key, value: await res.text() };
+  },
+  async set(key, value){
+    const name = `squirrel-drawer-${key}.json`;
+    let id = await this.findId(key);
+    if(!id){
+      const boundary = 'sqdrwrboundary';
+      const metadata = { name };
+      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${value}\r\n--${boundary}--`;
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${driveAccessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+        body
+      });
+      if(!res.ok) throw new Error('drive create failed');
+      const data = await res.json();
+      id = data.id;
+      this.fileIds[key] = id;
+    } else {
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${driveAccessToken}`, 'Content-Type': 'application/json' },
+        body: value
+      });
+      if(!res.ok) throw new Error('drive update failed');
+    }
+    return { key, value };
+  },
+  async delete(){ return null; },
+  async list(){ return { keys: Object.keys(this.fileIds) }; }
+};
+
+/* Works three ways, in priority order:
+   1. Signed in with Google → reads/writes JSON files in your own Drive.
+   2. Inside Claude → uses Claude's persistent storage.
+   3. Opened standalone with no sign-in → this browser's local storage. */
+let storage = (typeof window.storage !== 'undefined' && typeof window.storage.get === 'function')
+  ? window.storage
+  : localFallback;
+
+async function loadData(){
+  try{
+    const c = await storage.get('categories');
+    categories = c ? JSON.parse(c.value) : DEFAULT_CATEGORIES;
+  }catch(e){
+    const local = localMirrorGet('categories');
+    categories = local ? JSON.parse(local) : DEFAULT_CATEGORIES;
+    await saveCategories();
+  }
+  try{
+    const i = await storage.get('ideas');
+    ideas = i ? JSON.parse(i.value) : SAMPLE_IDEAS;
+  }catch(e){
+    const local = localMirrorGet('ideas');
+    ideas = local ? JSON.parse(local) : SAMPLE_IDEAS;
+    await saveIdeas();
+  }
+  if(ensureNotebookIds(ideas)) await saveIdeas();
+  renderAll();
+}
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject)=> setTimeout(()=> reject(new Error('storage timeout')), ms))
+  ]);
+}
+/* Always mirror to this browser's local storage too, so a real save failure
+   (not just a hang) still leaves your data recoverable on reload. */
+function localMirrorSet(key, value){ try{ localStorage.setItem('squirrel-drawer-mirror:'+key, value); }catch(e){} }
+function localMirrorGet(key){ try{ return localStorage.getItem('squirrel-drawer-mirror:'+key); }catch(e){ return null; } }
+
+async function saveIdeas(){
+  localMirrorSet('ideas', JSON.stringify(ideas));
+  try{ await withTimeout(storage.set('ideas', JSON.stringify(ideas)), 2500); }catch(e){ console.error('save ideas failed', e); }
+}
+async function saveCategories(){
+  localMirrorSet('categories', JSON.stringify(categories));
+  try{ await withTimeout(storage.set('categories', JSON.stringify(categories)), 2500); }catch(e){ console.error('save categories failed', e); }
+}
+
+function catById(id){ return categories.find(c=>c.id===id); }
+function subLabel(catId, subId){
+  const c = catById(catId); if(!c) return null;
+  const s = c.subs.find(s=>s.id===subId); return s ? s.name : null;
+}
+function catColor(catId){ const c = catById(catId); return c ? c.color : '#9b8fa8'; }
+function catName(catId){ const c = catById(catId); return c ? c.name : 'Unsorted'; }
+
+function ensureNotebookIds(list){
+  let changed = false;
+  list.forEach(idea=>{
+    (idea.notebook||[]).forEach(n=>{
+      if(!n.id){ n.id = 'n'+Date.now()+Math.random().toString(36).slice(2,6); changed = true; }
+      // older entries stored a single `image`; entries now hold a list in `images`
+      if(!Array.isArray(n.images)){
+        n.images = n.image ? [n.image] : [];
+        delete n.image;
+        changed = true;
+      }
+    });
+  });
+  return changed;
+}
+
+/* Thumbnail grid for an entry's photos; tap one to see it full size. */
+function imagesHtml(n){
+  const imgs = n.images || [];
+  if(!imgs.length) return '';
+  return `<div class="nb-img-grid">${imgs.map((src,i)=>`<img src="${src}" data-lightbox="${i}" alt="Reference photo ${i+1}">`).join('')}</div>`;
+}
+function openLightbox(src){
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = `<img src="${src}" alt="Reference photo, full size">`;
+  lb.addEventListener('click', ()=> lb.remove());
+  document.body.appendChild(lb);
+}
+/* Turn what she typed into a safe http(s) URL, or '' if it is just a folder name. */
+function normalizeUrl(s){
+  s = (s||'').trim();
+  if(!s || /\s/.test(s)) return '';
+  if(/^https?:\/\//i.test(s)) return s;
+  if(/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(s)) return 'https://' + s;
+  return '';
+}
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); return true; }catch(e){}
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove(); return ok;
+  }catch(e){ return false; }
+}
+function buildAiPrompt(idea){
+  const c = catById(idea.category);
+  const sub = c && idea.sub ? (c.subs.find(s=>s.id===idea.sub)||{}).name : '';
+  const where = c ? c.name + (sub ? ' > ' + sub : '') : '';
+  const notes = (idea.notebook||[]).map(n=>'- ' + new Date(n.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) + ': ' + n.text + ((n.images||[]).length ? ' (' + n.images.length + ' photo' + (n.images.length>1?'s':'') + ' not attached)' : '')).join('\n');
+  return [
+    "I'm a surface pattern and product designer with two small brands (Zukism and Fluff Yeah!). Help me turn this rough idea into something real.",
+    '',
+    'THE IDEA:',
+    idea.text,
+    where ? '\nFILED UNDER: ' + where : '',
+    notes ? '\nMY NOTES SO FAR:\n' + notes : '',
+    idea.refLink ? '\nMY REFERENCES: ' + idea.refLink : '',
+    '',
+    'Ask me up to 3 quick questions first, then suggest 3 directions I could take it (concept, product format, and a first small step I can do this week). Keep it warm, witty and practical, no corporate fluff.'
+  ].filter(x=>x!==undefined).join('\n');
+}
+function aiTarget(which, prompt){
+  const q = encodeURIComponent(prompt);
+  const fits = q.length < 1800; // long URLs get cut off; the clipboard copy covers that
+  switch(which){
+    case 'claude':     return { name:'Claude',     prefilled:fits, url: fits ? 'https://claude.ai/new?q='+q : 'https://claude.ai/new' };
+    case 'chatgpt':    return { name:'ChatGPT',    prefilled:fits, url: fits ? 'https://chatgpt.com/?q='+q : 'https://chatgpt.com/' };
+    case 'perplexity': return { name:'Perplexity', prefilled:fits, url: fits ? 'https://www.perplexity.ai/?q='+q : 'https://www.perplexity.ai/' };
+    default:           return { name:'Gemini',     prefilled:false, url:'https://gemini.google.com/app' };
+  }
+}
+function thumbsHtml(list, attr){
+  return list.map((src,i)=>`<span class="thumb-wrap"><img src="${src}" alt=""><button type="button" class="thumb-x" ${attr}="${i}" title="Remove this photo">×</button></span>`).join('');
+}
+
+function resizeImageFile(file, maxW=800, quality=0.72){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const scale = Math.min(1, maxW/img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width*scale; canvas.height = img.height*scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function debounce(fn, delay){
+  let t;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), delay); };
+}
+
+function slugify(s){ return (s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'cat'); }
+const NEW_CAT_PALETTE = ['#c9a15a','#8a9a7e','#e4694f','#5b7a8c','#b6633b','#7c8f5e','#a3714f','#7e6a9e'];
+
+function showInlinePrompt(anchorEl, placeholder, onSubmit){
+  document.querySelectorAll('.inline-prompt').forEach(el=>el.remove());
+  const wrap = document.createElement('span');
+  wrap.className = 'inline-prompt';
+  wrap.innerHTML = `<input type="text" class="inline-prompt-input" placeholder="${placeholder}"><button class="inline-prompt-ok" type="button">Add</button><button class="inline-prompt-cancel" type="button">✕</button>`;
+  anchorEl.insertAdjacentElement('afterend', wrap);
+  const input = wrap.querySelector('.inline-prompt-input');
+  input.focus();
+  const cleanup = ()=>{ if(wrap.parentNode) wrap.remove(); };
+  const submit = ()=>{ const val = input.value.trim(); cleanup(); if(val) onSubmit(val); };
+  wrap.querySelector('.inline-prompt-ok').addEventListener('click', submit);
+  wrap.querySelector('.inline-prompt-cancel').addEventListener('click', cleanup);
+  input.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); submit(); }
+    if(e.key==='Escape'){ cleanup(); }
+  });
+}
+
+async function createCategory(name){
+  const id = slugify(name) + '-' + Date.now().toString(36).slice(-4);
+  const color = NEW_CAT_PALETTE[categories.length % NEW_CAT_PALETTE.length];
+  const newCat = { id, name:name.trim(), color, subs:[] };
+  const unsortedIdx = categories.findIndex(c=>c.special);
+  if(unsortedIdx>=0) categories.splice(unsortedIdx,0,newCat); else categories.push(newCat);
+  await saveCategories();
+  showToast('New category added ✦');
+  return newCat;
+}
+
+async function createSubcategory(catId, name){
+  const c = catById(catId);
+  if(!c) return null;
+  const id = slugify(name) + '-' + Date.now().toString(36).slice(-4);
+  const newSub = { id, name:name.trim() };
+  c.subs.push(newSub);
+  await saveCategories();
+  showToast('Sub-category added ✦');
+  return newSub;
+}
+
+function isStale(idea){
+  if(idea.reviewDate){
+    return new Date(idea.reviewDate) <= new Date();
+  }
+  const days = (Date.now() - new Date(idea.lastTouched)) / 86400000;
+  return days >= 30;
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------- capture ---------- */
+const captureInput = document.getElementById('captureInput');
+const dropBtn = document.getElementById('dropBtn');
+const micBtn = document.getElementById('micBtn');
+const imgBtn = document.getElementById('imgBtn');
+const imgInput = document.getElementById('imgInput');
+const captureMeta = document.getElementById('captureMeta');
+
+function autoExpand(el, max){
+  el.style.height='auto';
+  el.style.height = Math.min(el.scrollHeight, max)+'px';
+}
+captureInput.addEventListener('input', ()=> autoExpand(captureInput,150));
+captureInput.addEventListener('keydown', (e)=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); dropIdea(); }
+});
+dropBtn.addEventListener('click', dropIdea);
+
+async function dropIdea(){
+  const text = captureInput.value.trim();
+  if(!text && !pendingImage){ return; }
+  const dest = decodeDest(document.getElementById('captureDest').value);
+  const idea = {
+    id: 'i'+Date.now(),
+    text: text || '(image only — add words whenever)',
+    category: dest.category, sub: dest.sub,
+    image: pendingImage,
+    reviewDate:null,
+    createdAt: new Date().toISOString(),
+    lastTouched: new Date().toISOString(),
+    notebook: []
+  };
+  ideas.unshift(idea);
+  await saveIdeas();
+  captureInput.value=''; captureInput.style.height='auto';
+  pendingImage = null; captureMeta.innerHTML='';
+  showToast(dest.category==='unsorted' ? 'Stashed ✦' : `Filed under ${dest.label} ✦`);
+  renderAll();
+}
+
+function encodeDest(catId, subId){ return `${catId}::${subId||''}`; }
+function decodeDest(value){
+  const [catId, subId] = (value||'unsorted::').split('::');
+  const c = catById(catId) || catById('unsorted');
+  const label = subId ? `${c.name} · ${subLabel(c.id, subId)}` : c.name;
+  return { category:c.id, sub: subId || null, label };
+}
+
+function captureDestination(){
+  if(activeFilter.type==='cat'){
+    const c = catById(activeFilter.id);
+    if(c && !c.special){
+      if(activeFilter.subId){
+        return { category:c.id, sub:activeFilter.subId, label:`${c.name} · ${subLabel(c.id,activeFilter.subId)}` };
+      }
+      return { category:c.id, sub:null, label:c.name };
+    }
+  }
+  return { category:'unsorted', sub:null, label:'Unsorted' };
+}
+
+function renderCaptureDest(){
+  const select = document.getElementById('captureDest');
+  let html = '';
+  categories.forEach(c=>{
+    html += `<option value="${encodeDest(c.id,null)}">${c.name}</option>`;
+    c.subs.forEach(s=> html += `<option value="${encodeDest(c.id,s.id)}">&nbsp;&nbsp;↳ ${s.name}</option>`);
+  });
+  select.innerHTML = html;
+  const dest = captureDestination();
+  select.value = encodeDest(dest.category, dest.sub);
+}
+
+function updateCaptureHint(){
+  const hint = document.getElementById('captureHint');
+  hint.textContent = 'You can change this before dropping it in, or leave it and sort later.';
+}
+
+/* voice capture */
+let recognition = null;
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SpeechRec){
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  let baseText = '';
+  recognition.onstart = ()=>{ baseText = captureInput.value ? captureInput.value + ' ' : ''; micBtn.classList.add('recording'); micBtn.textContent='●'; };
+  recognition.onresult = (e)=>{
+    let transcript = '';
+    for(let i=0;i<e.results.length;i++){ transcript += e.results[i][0].transcript; }
+    captureInput.value = baseText + transcript;
+    captureInput.dispatchEvent(new Event('input'));
+  };
+  recognition.onend = ()=>{ micBtn.classList.remove('recording'); micBtn.textContent='🎙️'; };
+  recognition.onerror = ()=>{ micBtn.classList.remove('recording'); micBtn.textContent='🎙️'; };
+  micBtn.addEventListener('click', ()=>{
+    if(micBtn.classList.contains('recording')){ recognition.stop(); } else { try{ recognition.start(); }catch(e){} }
+  });
+} else {
+  micBtn.disabled = true;
+  micBtn.title = 'Voice capture needs Chrome or Edge on desktop';
+}
+
+/* image capture — downscale before storing */
+imgBtn.addEventListener('click', ()=> imgInput.click());
+imgInput.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  pendingImage = await resizeImageFile(file);
+  captureMeta.innerHTML = `<img class="thumb-preview" src="${pendingImage}"><button class="clear-img" id="clearImg">remove</button>`;
+  document.getElementById('clearImg').addEventListener('click', ()=>{ pendingImage=null; captureMeta.innerHTML=''; imgInput.value=''; });
+});
+
+/* ---------- needs a look ---------- */
+function renderNeedsLook(){
+  const stale = ideas.filter(isStale).sort((a,b)=> new Date(a.reviewDate||a.lastTouched) - new Date(b.reviewDate||b.lastTouched));
+  const row = document.getElementById('nlRow');
+  const section = document.getElementById('needsLook');
+  const count = document.getElementById('nlCount');
+  if(stale.length===0){
+    section.style.display='none';
+    return;
+  }
+  section.style.display='block';
+  count.textContent = `(${stale.length})`;
+  row.innerHTML = stale.slice(0,10).map(idea=>`
+    <div class="nl-card" data-open="${idea.id}">
+      <div class="nl-text">${escapeHtml(idea.text)}</div>
+      <div style="font-size:11px;color:#a89aa6;">${catName(idea.category)}${idea.sub? ' · '+subLabel(idea.category,idea.sub):''}</div>
+      <div class="nl-actions">
+        <button data-snooze="${idea.id}">Snooze 2wk</button>
+        <button data-open2="${idea.id}">Open</button>
+      </div>
+    </div>
+  `).join('');
+  row.querySelectorAll('[data-open]').forEach(el=> el.addEventListener('click', (e)=>{
+    if(e.target.closest('button')) return;
+    openIdea(el.dataset.open);
+  }));
+  row.querySelectorAll('[data-open2]').forEach(el=> el.addEventListener('click', ()=> openIdea(el.dataset.open2)));
+  row.querySelectorAll('[data-snooze]').forEach(el=> el.addEventListener('click', async ()=>{
+    const idea = ideas.find(i=>i.id===el.dataset.snooze);
+    idea.reviewDate = daysFromNow(14);
+    idea.lastTouched = new Date().toISOString();
+    await saveIdeas(); showToast('Snoozed for two weeks'); renderAll();
+  }));
+}
+
+/* ---------- filters ---------- */
+function renderFilters(){
+  const wrap = document.getElementById('filters');
+  let html = `<button class="chip ${activeFilter.type==='all'?'active':''}" data-f="all">All</button>`;
+  html += `<button class="chip review-chip ${activeFilter.type==='review'?'active':''}" data-f="review">Needs review</button>`;
+  categories.forEach(c=>{
+    const active = activeFilter.type==='cat' && activeFilter.id===c.id;
+    html += `<button class="chip ${active?'active':''}" data-f="cat" data-id="${c.id}" style="${active?`background:${c.color};border-color:${c.color};`:''}">${c.name}</button>`;
+  });
+  html += `<button class="chip add-chip" id="addCategoryBtn">+ Category</button>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('[data-f]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const f = btn.dataset.f;
+      if(f==='all') activeFilter = {type:'all'};
+      else if(f==='review') activeFilter = {type:'review'};
+      else if(f==='cat') activeFilter = {type:'cat', id:btn.dataset.id, subId:null};
+      renderAll();
+    });
+  });
+  document.getElementById('addCategoryBtn').addEventListener('click', (e)=>{
+    showInlinePrompt(e.currentTarget, 'Category name', async (name)=>{
+      const newCat = await createCategory(name);
+      if(newCat) activeFilter = { type:'cat', id:newCat.id, subId:null };
+      renderAll();
+    });
+  });
+
+  // sub-chips row if a parent category is active — visually distinct from root chips
+  if(activeFilter.type==='cat'){
+    const c = catById(activeFilter.id);
+    if(c && !c.special){
+      const subRow = document.createElement('div');
+      subRow.className = 'sub-row';
+      let subHtml = `<button class="chip all-sub-chip ${!activeFilter.subId?'active':''}" data-sub="" style="${!activeFilter.subId?`background:${c.color};border-color:${c.color};color:var(--velvet-deep);`:''}">All in ${c.name}</button>`;
+      subHtml += c.subs.map(s=>{
+        const active = activeFilter.subId===s.id;
+        return `<button class="chip sub-chip ${active?'active':''}" data-sub="${s.id}" style="${active?`background:${c.color};border-color:${c.color};color:var(--velvet-deep);`:''}">${s.name}</button>`;
+      }).join('');
+      subHtml += `<button class="chip add-chip" data-addsub="${c.id}">+ Sub-category</button>`;
+      subRow.innerHTML = subHtml;
+      wrap.appendChild(subRow);
+      subRow.querySelectorAll('[data-sub]').forEach(b=> b.addEventListener('click', ()=>{
+        activeFilter.subId = b.dataset.sub === '' ? null : b.dataset.sub;
+        renderAll();
+      }));
+      subRow.querySelectorAll('[data-addsub]').forEach(b=> b.addEventListener('click', (e)=>{
+        showInlinePrompt(e.currentTarget, 'Sub-category name', async (name)=>{
+          const newSub = await createSubcategory(b.dataset.addsub, name);
+          if(newSub) activeFilter.subId = newSub.id;
+          renderAll();
+        });
+      }));
+    }
+  }
+}
+
+/* ---------- grid ---------- */
+function filteredIdeas(){
+  return ideas.filter(idea=>{
+    if(activeFilter.type==='all') return true;
+    if(activeFilter.type==='review') return isStale(idea);
+    if(activeFilter.type==='cat'){
+      if(idea.category !== activeFilter.id) return false;
+      if(activeFilter.subId) return idea.sub === activeFilter.subId;
+      return true;
+    }
+    return true;
+  }).sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function renderGrid(){
+  const list = filteredIdeas();
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+  if(list.length===0){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  grid.innerHTML = list.map((idea,idx)=>{
+    const rot = (idx%5-2)*0.6;
+    return `
+    <div class="idea-card" style="--r:${rot}deg" data-id="${idea.id}">
+      ${isStale(idea) ? `<div class="review-tag">A LOOK?</div>` : ''}
+      ${idea.image ? `<img src="${idea.image}">` : ''}
+      <div class="idea-text">${escapeHtml(idea.text)}</div>
+      <div class="card-foot">
+        <span class="cat-dot"><span class="dot" style="background:${catColor(idea.category)}"></span>${catName(idea.category)}${idea.sub?' · '+subLabel(idea.category,idea.sub):''}</span>
+        ${idea.notebook.length ? `<span class="notebook-flag" title="${idea.notebook.length} notebook entries">📖</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.idea-card').forEach(el=> el.addEventListener('click', ()=> openIdea(el.dataset.id)));
+}
+
+/* ---------- modal / expand view ---------- */
+function openIdea(id){
+  openIdeaId = id;
+  renderModal();
+}
+function removeOverlay(){
+  const existing = document.querySelector('.overlay');
+  if(existing) existing.remove();
+}
+function closeModal(){
+  openIdeaId = null;
+  removeOverlay();
+}
+
+function renderModal(){
+  removeOverlay();
+  const idea = ideas.find(i=>i.id===openIdeaId);
+  if(!idea) return;
+  const c = catById(idea.category);
+  let entryPendingImages = []; // photos staged for the new-entry composer
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-top">
+        <div style="flex:1;">
+          <textarea class="main-idea" id="ideaText">${escapeHtml(idea.text)}</textarea>
+          <div class="edit-hint">Tap the text to edit</div>
+        </div>
+        <button class="close-x" id="closeModal">✕</button>
+      </div>
+      ${idea.image ? `<img class="idea-img" src="${idea.image}">` : ''}
+      <div class="field-row">
+        <div class="field">Category
+          <select id="catSelect">
+            ${categories.map(cc=>`<option value="${cc.id}" ${cc.id===idea.category?'selected':''}>${cc.name}</option>`).join('')}
+            <option value="__new_cat__">+ New category…</option>
+          </select>
+        </div>
+        <div class="field" id="subFieldWrap" style="${(c&&!c.special)?'':'display:none;'}">Sub-category
+          <select id="subSelect">
+            <option value="">— none —</option>
+            ${c ? c.subs.map(s=>`<option value="${s.id}" ${s.id===idea.sub?'selected':''}>${s.name}</option>`).join('') : ''}
+            <option value="__new_sub__">+ New sub-category…</option>
+          </select>
+        </div>
+        <div class="field">Review me on
+          <input type="date" id="reviewDate" value="${idea.reviewDate ? idea.reviewDate.slice(0,10) : ''}">
+        </div>
+        ${idea.reviewDate ? `<button class="link-btn" id="clearReview">clear date</button>` : ''}
+      </div>
+
+      <div class="ref-row">
+        <label class="ref-label" for="refLink">📁 Reference folder or link</label>
+        <div class="ref-input-row">
+          <input type="text" id="refLink" placeholder="Paste a Drive, Dropbox or Pinterest link, or type a folder name" value="${escapeHtml(idea.refLink||'')}" autocomplete="off">
+          <span id="refActions"></span>
+        </div>
+      </div>
+
+      <div class="ai-row">
+        <button class="ai-btn" id="aiBtn" type="button">✨ Bring it to life with AI</button>
+        <div class="ai-menu" id="aiMenu" hidden>
+          <div class="ai-menu-hint">Opens a chat with your idea and notebook already written out. Pick your AI:</div>
+          <button type="button" data-ai="claude">Claude</button>
+          <button type="button" data-ai="chatgpt">ChatGPT</button>
+          <button type="button" data-ai="perplexity">Perplexity</button>
+          <button type="button" data-ai="gemini">Gemini</button>
+          <button type="button" data-ai="copy">Just copy the prompt</button>
+          <div class="ai-menu-note" id="aiNote"></div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="notebook-label">📖 Notebook — build on this over time</div>
+      <div class="notebook-entries" id="nbEntries">
+        ${idea.notebook.length ? idea.notebook.slice().reverse().map(n=>`
+          <div class="nb-entry" data-entry-id="${n.id}">
+            <div class="nb-date">
+              <span>${new Date(n.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span>
+              <button class="nb-edit-btn" data-edit="${n.id}">Edit</button>
+            </div>
+            <div class="nb-view">
+              <div class="nb-text">${escapeHtml(n.text)}</div>
+              ${imagesHtml(n)}
+            </div>
+          </div>`).join('') : `<div style="font-size:12.5px;color:var(--ink-soft);">Nothing added yet. First session starts whenever you're ready.</div>`}
+      </div>
+      <div class="nb-add">
+        <div class="nb-add-row">
+          <textarea id="nbNew" placeholder="Pick up where you left off..."></textarea>
+          <div class="nb-preview-row" id="nbPreviewRow"></div>
+          <div class="nb-add-actions">
+            <button class="nb-img-toolbtn" id="nbImgBtn" type="button">🖼️ Add photos</button>
+            <input type="file" id="nbImgInput" accept="image/*" multiple>
+            <button class="nb-submit-btn" id="nbAddBtn">Add entry</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="delete-btn" id="deleteIdea">Delete this idea</button>
+        <span class="save-note" id="saveNote">Autosaves as you go</span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+
+  const noteEl = document.getElementById('saveNote');
+  const flashSaved = ()=>{
+    if(!noteEl) return;
+    noteEl.textContent = 'Saved ✓';
+    noteEl.className = 'save-note saved';
+    clearTimeout(flashSaved._t);
+    flashSaved._t = setTimeout(()=>{ if(noteEl){ noteEl.textContent = 'Autosaves as you go'; noteEl.className='save-note'; } }, 1400);
+  };
+  const showSaving = ()=>{
+    if(!noteEl) return;
+    clearTimeout(flashSaved._t);
+    noteEl.textContent = 'Saving…';
+    noteEl.className = 'save-note saving';
+  };
+
+  const textArea = document.getElementById('ideaText');
+  autoExpand(textArea, 320);
+
+  const persistTextAndDate = ()=>{
+    idea.text = textArea.value.trim() || idea.text;
+    const rd = document.getElementById('reviewDate').value;
+    idea.reviewDate = rd || null;
+    idea.lastTouched = new Date().toISOString();
+    saveIdeas(); // fire-and-forget; UI confirmation below doesn't wait on it
+    flashSaved();
+  };
+  const debouncedTextSave = debounce(persistTextAndDate, 500);
+  textArea.addEventListener('input', ()=>{ autoExpand(textArea,320); showSaving(); debouncedTextSave(); });
+  textArea.addEventListener('blur', ()=>{ persistTextAndDate(); renderAll(); });
+  document.getElementById('reviewDate').addEventListener('change', ()=>{ persistTextAndDate(); renderAll(); });
+
+  document.getElementById('catSelect').addEventListener('change', async (e)=>{
+    if(e.target.value === '__new_cat__'){
+      e.target.value = idea.category;
+      showInlinePrompt(e.target, 'New category name', async (name)=>{
+        const newCat = await createCategory(name);
+        if(newCat){ idea.category = newCat.id; idea.sub = null; idea.lastTouched = new Date().toISOString(); await saveIdeas(); }
+        renderModal(); renderAll();
+      });
+      return;
+    }
+    idea.category = e.target.value;
+    idea.sub = null;
+    idea.lastTouched = new Date().toISOString();
+    await saveIdeas();
+    renderModal(); renderAll();
+  });
+
+  const subSelectEl = document.getElementById('subSelect');
+  if(subSelectEl) subSelectEl.addEventListener('change', async (e)=>{
+    if(e.target.value === '__new_sub__'){
+      e.target.value = idea.sub || '';
+      showInlinePrompt(e.target, 'New sub-category name', async (name)=>{
+        const newSub = await createSubcategory(idea.category, name);
+        if(newSub){ idea.sub = newSub.id; idea.lastTouched = new Date().toISOString(); await saveIdeas(); }
+        renderModal(); renderAll();
+      });
+      return;
+    }
+    idea.sub = e.target.value || null;
+    idea.lastTouched = new Date().toISOString();
+    await saveIdeas();
+    renderModal(); renderAll();
+  });
+
+  const clearReviewBtn = document.getElementById('clearReview');
+  if(clearReviewBtn) clearReviewBtn.addEventListener('click', ()=>{
+    idea.reviewDate = null; saveIdeas().then(()=>{ renderModal(); renderAll(); });
+  });
+
+  /* ---- notebook: build entries list + wire edit buttons (reusable, no full modal rebuild) ---- */
+  function buildEntriesHtml(){
+    return idea.notebook.length ? idea.notebook.slice().reverse().map(n=>`
+      <div class="nb-entry" data-entry-id="${n.id}">
+        <div class="nb-date">
+          <span>${new Date(n.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span>
+          <button class="nb-edit-btn" data-edit="${n.id}">Edit</button>
+        </div>
+        <div class="nb-view">
+          <div class="nb-text">${escapeHtml(n.text)}</div>
+          ${imagesHtml(n)}
+        </div>
+      </div>`).join('') : `<div style="font-size:12.5px;color:var(--ink-soft);">Nothing added yet. First session starts whenever you're ready.</div>`;
+  }
+
+  function refreshNotebookList(){
+    document.getElementById('nbEntries').innerHTML = buildEntriesHtml();
+    wireEntryEdits();
+  }
+
+  function wireEntryEdits(){
+    document.querySelectorAll('[data-edit]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const entryId = btn.dataset.edit;
+        const entry = idea.notebook.find(n=>n.id===entryId);
+        if(!entry) return;
+        const entryEl = document.querySelector(`.nb-entry[data-entry-id="${entryId}"] .nb-view`);
+        let stagedImages = (entry.images || []).slice();
+        entryEl.innerHTML = `
+          <div class="nb-edit-area">
+            <textarea class="nb-edit-textarea">${escapeHtml(entry.text)}</textarea>
+            <div class="nb-preview-row" id="editPreview-${entryId}"></div>
+            <div class="nb-edit-actions">
+              <button class="nb-save-btn" data-save="${entryId}">Save</button>
+              <button class="nb-cancel-btn" data-cancel="${entryId}">Cancel</button>
+              <button class="nb-img-btn" data-editimg="${entryId}">🖼️ Add photos</button>
+              <input type="file" accept="image/*" multiple style="display:none" id="editImgInput-${entryId}">
+            </div>
+          </div>`;
+        const ta = entryEl.querySelector('.nb-edit-textarea');
+        autoExpand(ta, 260); ta.focus();
+        ta.addEventListener('input', ()=> autoExpand(ta,260));
+
+        const renderEditPreview = ()=>{
+          const row = document.getElementById(`editPreview-${entryId}`);
+          row.innerHTML = thumbsHtml(stagedImages, 'data-rmimg');
+          row.querySelectorAll('[data-rmimg]').forEach(b=>{
+            b.addEventListener('click', ()=>{ stagedImages.splice(Number(b.dataset.rmimg),1); renderEditPreview(); });
+          });
+        };
+        renderEditPreview();
+
+        const fileInput = document.getElementById(`editImgInput-${entryId}`);
+        entryEl.querySelector(`[data-editimg="${entryId}"]`).addEventListener('click', ()=> fileInput.click());
+        fileInput.addEventListener('change', async (e)=>{
+          const files = Array.from(e.target.files || []);
+          e.target.value = '';
+          for(const f of files){ stagedImages.push(await resizeImageFile(f)); }
+          renderEditPreview();
+        });
+
+        entryEl.querySelector(`[data-save="${entryId}"]`).addEventListener('click', ()=>{
+          showSaving();
+          entry.text = ta.value.trim() || entry.text;
+          entry.images = stagedImages;
+          idea.lastTouched = new Date().toISOString();
+          saveIdeas();
+          flashSaved();
+          refreshNotebookList();
+          renderAll();
+        });
+        entryEl.querySelector(`[data-cancel="${entryId}"]`).addEventListener('click', ()=>{
+          refreshNotebookList();
+        });
+      });
+    });
+  }
+  wireEntryEdits();
+
+  /* ---- notebook: new entry composer ---- */
+  const nbNewEl = document.getElementById('nbNew');
+  autoExpand(nbNewEl, 220);
+  nbNewEl.addEventListener('input', ()=> autoExpand(nbNewEl,220));
+
+  const renderNbPreview = ()=>{
+    const row = document.getElementById('nbPreviewRow');
+    row.innerHTML = thumbsHtml(entryPendingImages, 'data-rmpending');
+    row.querySelectorAll('[data-rmpending]').forEach(b=>{
+      b.addEventListener('click', ()=>{ entryPendingImages.splice(Number(b.dataset.rmpending),1); renderNbPreview(); });
+    });
+  };
+  document.getElementById('nbImgBtn').addEventListener('click', ()=> document.getElementById('nbImgInput').click());
+  document.getElementById('nbImgInput').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    for(const f of files){ entryPendingImages.push(await resizeImageFile(f)); }
+    renderNbPreview();
+  });
+
+  // tap a photo in the notebook to see it full size
+  document.getElementById('nbEntries').addEventListener('click', (e)=>{
+    const img = e.target.closest && e.target.closest('img[data-lightbox]');
+    if(img) openLightbox(img.src);
+  });
+
+  /* ---- reference folder / link ---- */
+  const refInput = document.getElementById('refLink');
+  const refActions = document.getElementById('refActions');
+  const renderRefActions = ()=>{
+    const val = refInput.value.trim();
+    const url = normalizeUrl(val);
+    refActions.innerHTML = !val ? '' : (url
+      ? `<a class="ref-btn" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`
+      : `<button type="button" class="ref-btn" id="refCopy">Copy</button>`);
+    const cp = document.getElementById('refCopy');
+    if(cp) cp.addEventListener('click', async ()=>{ await copyText(val); showToast('Folder name copied'); });
+  };
+  renderRefActions();
+  const saveRef = debounce(()=>{
+    idea.refLink = refInput.value.trim();
+    idea.lastTouched = new Date().toISOString();
+    saveIdeas(); flashSaved();
+  }, 500);
+  refInput.addEventListener('input', ()=>{ renderRefActions(); showSaving(); saveRef(); });
+
+  /* ---- bring it to life with AI ---- */
+  const aiMenu = document.getElementById('aiMenu');
+  document.getElementById('aiBtn').addEventListener('click', ()=>{ aiMenu.hidden = !aiMenu.hidden; });
+  aiMenu.querySelectorAll('[data-ai]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const which = b.dataset.ai;
+      const prompt = buildAiPrompt(idea);
+      const copied = await copyText(prompt);
+      const note = document.getElementById('aiNote');
+      if(which === 'copy'){
+        note.textContent = copied ? 'Prompt copied. Paste it into any AI.' : 'Could not copy automatically. Select the text in your idea and copy it by hand.';
+        return;
+      }
+      const target = aiTarget(which, prompt);
+      note.textContent = target.prefilled
+        ? 'Opening ' + target.name + '. If the chat looks empty, paste: the prompt is copied.'
+        : 'Opening ' + target.name + '. Paste to start: the prompt is copied.';
+      window.open(target.url, '_blank', 'noopener');
+    });
+  });
+
+  document.getElementById('nbAddBtn').addEventListener('click', ()=>{
+    const txt = document.getElementById('nbNew').value.trim();
+    if(!txt && !entryPendingImages.length) return;
+    showSaving();
+    idea.notebook.push({ id:'n'+Date.now()+Math.random().toString(36).slice(2,6), ts: new Date().toISOString(), text: txt || '(photos only)', images: entryPendingImages.slice() });
+    idea.lastTouched = new Date().toISOString();
+    saveIdeas();
+    flashSaved();
+    document.getElementById('nbNew').value = '';
+    autoExpand(nbNewEl, 220);
+    entryPendingImages = [];
+    renderNbPreview();
+    refreshNotebookList();
+    renderAll();
+  });
+
+  document.getElementById('deleteIdea').addEventListener('click', async (e)=>{
+    const btn = e.currentTarget;
+    if(btn.dataset.armed !== '1'){
+      btn.dataset.armed = '1';
+      btn.textContent = 'Click again to confirm';
+      clearTimeout(btn._disarmTimer);
+      btn._disarmTimer = setTimeout(()=>{ btn.dataset.armed='0'; btn.textContent='Delete this idea'; }, 3000);
+      return;
+    }
+    ideas = ideas.filter(i=>i.id!==idea.id);
+    await saveIdeas();
+    closeModal(); renderAll();
+  });
+}
+
+/* ---------- render all ---------- */
+function renderAll(){
+  renderNeedsLook();
+  renderFilters();
+  renderGrid();
+  renderCaptureDest();
+  updateCaptureHint();
+}
+
+/* ---- sign-in gate ---- */
+function enterApp(){
+  document.getElementById('signInScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = '';
+  loadData();
+}
+
+function initGoogleSignIn(){
+  if(typeof google === 'undefined' || !google.accounts || GOOGLE_CLIENT_ID.indexOf('YOUR_CLIENT_ID_HERE') !== -1){
+    // Not configured yet — hide the Google option so "skip" is the obvious path
+    const btn = document.getElementById('googleSignInBtn');
+    if(btn){ btn.style.display = 'none'; }
+    return;
+  }
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (resp)=>{
+      if(resp.error){ console.error('Google sign-in failed', resp); return; }
+      driveAccessToken = resp.access_token;
+      storage = driveStorage;
+      enterApp();
+    }
+  });
+  document.getElementById('googleSignInBtn').addEventListener('click', ()=> tokenClient.requestAccessToken());
+}
+
+document.getElementById('skipSignInBtn').addEventListener('click', enterApp);
+initGoogleSignIn();
+</script>
+</body>
+</html>
