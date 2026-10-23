@@ -1341,13 +1341,17 @@ function enterApp(){
   loadData();
 }
 
+let googleInitTries = 0;
 function initGoogleSignIn(){
-  if(typeof google === 'undefined' || !google.accounts || GOOGLE_CLIENT_ID.indexOf('YOUR_CLIENT_ID_HERE') !== -1){
-    // Not configured yet — hide the Google option so "skip" is the obvious path
-    const btn = document.getElementById('googleSignInBtn');
+  const btn = document.getElementById('googleSignInBtn');
+  if(GOOGLE_CLIENT_ID.indexOf('YOUR_CLIENT_ID_HERE') !== -1){ if(btn) btn.style.display = 'none'; return; }
+  // Google's script loads async, so wait for it instead of giving up straight away
+  if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2){
+    if(googleInitTries++ < 40){ if(btn) btn.style.opacity = '0.5'; setTimeout(initGoogleSignIn, 250); return; }
     if(btn){ btn.style.display = 'none'; }
     return;
   }
+  if(btn) btn.style.opacity = '';
   const tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
@@ -1356,9 +1360,10 @@ function initGoogleSignIn(){
       driveAccessToken = resp.access_token;
       storage = driveStorage;
       enterApp();
-    }
+    },
+    error_callback: (err)=>{ try{ showToast('Google sign-in was blocked ('+(err.type||'error')+').'); }catch(e){} }
   });
-  document.getElementById('googleSignInBtn').addEventListener('click', ()=> tokenClient.requestAccessToken());
+  btn.addEventListener('click', ()=> tokenClient.requestAccessToken());
 }
 
 document.getElementById('skipSignInBtn').addEventListener('click', enterApp);
